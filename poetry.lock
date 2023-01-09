@@ -1,0 +1,17 @@
+[[package]]
+name = "py-essentials"
+version = "1.4.12"
+description = "A collection of simple and useful python algorythms and functions."
+category = "main"
+optional = false
+python-versions = "*"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.8"
+content-hash = "c89b132d0b208d67bb2a2aa90d9d420dd85a1816ddea99f3799bc9ce54fcd4e9"
+
+[metadata.files]
+py-essentials = [
+    {file = "py_essentials-1.4.12.tar.gz", hash = "sha256:cd1f18a042dbc1866669e446422e62473b3818824d6053d4cd2e49b1630c4b19"},
+]

@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "testupdatedatabase"
+version = "0.1.0"
+description = ""
+authors = ["aslan <baristan1aslan@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+py-essentials = "^1.4.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
