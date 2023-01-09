@@ -126,7 +126,7 @@ class DbMethods(DbHelper):
                                left_table="directories",
                                right_table="files",
                                on_fields="directories.id = files.directory_id",
-                               filters=f"directories.name LIKE '{path}%';")
+                               filters=f"directories.name LIKE '{path}%/';")
         logger.info(f"Deleted these ids: {ids}")
         files_id = ", ".join([str(i[1]) for i in ids])
         dir_id = ", ".join([str(i[0]) for i in ids])
@@ -138,14 +138,14 @@ class DbMethods(DbHelper):
         return ids
 
     def delete_table(self, table_name: str) -> None:
-        self._execute_query(f"DROP TABLE {table_name}; ")
+        self._execute_query(f"DROP TABLE IF EXISTS {table_name}; ")
 
     def delete_tables_if_files_or_dir_not_exists(self) -> None:
         tables = ["files", "directories"]
         for table in tables:
             response = self._execute_query(
-                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
-            if not response:
+                f"SELECT EXISTS(SELECT name FROM sqlite_master WHERE type='table' AND name='{table}');").fetchone()
+            if 0 in response:
                 self.delete_table(tables[0])
-                self.delete_table(table[1])
+                self.delete_table(tables[1])
                 break

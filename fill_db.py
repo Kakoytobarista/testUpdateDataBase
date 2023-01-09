@@ -1,6 +1,6 @@
 import datetime
 import os
-from parser import args, parse_arguments
+from utils.parser import args, parse_arguments
 
 from py_essentials import hashing as hs
 
