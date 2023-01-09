@@ -28,20 +28,14 @@ def parse_arguments() -> None:
         add_stream_handler(logger)
         logger.debug("Verbose argument is given")
 
-    if not args.log:
-        logger.debug("Log argument is given")
-
-    if not args.directory:
-        add_stream_handler(logger)
-        logger.error("You are dont write a root directory")
-
-    if not args.database:
-        add_stream_handler(logger)
-        logger.error("You are dont write a database directory")
-
     if not os.path.exists(args.directory):
         add_stream_handler(logger)
         logger.error("Root directory doesn't exist")
+        sys.exit(1)
+
+    if not os.path.exists(args.log):
+        add_stream_handler(logger)
+        logger.error("Log file doesn't exist")
         sys.exit(1)
 
     if not os.path.exists(args.database):
