@@ -1,4 +1,18 @@
 [[package]]
+name = "isort"
+version = "5.11.4"
+description = "A Python utility / library to sort Python imports."
+category = "main"
+optional = false
+python-versions = ">=3.7.0"
+
+[package.extras]
+colors = ["colorama (>=0.4.3,<0.5.0)"]
+pipfile-deprecated-finder = ["pipreqs", "requirementslib"]
+plugins = ["setuptools"]
+requirements-deprecated-finder = ["pip-api", "pipreqs"]
+
+[[package]]
 name = "py-essentials"
 version = "1.4.12"
 description = "A collection of simple and useful python algorythms and functions."
@@ -9,9 +23,13 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "c89b132d0b208d67bb2a2aa90d9d420dd85a1816ddea99f3799bc9ce54fcd4e9"
+content-hash = "98c62a72dc461f3a3823277f0e87987b0221023c0e79465e7b9e5ba3ac64ec3d"
 
 [metadata.files]
+isort = [
+    {file = "isort-5.11.4-py3-none-any.whl", hash = "sha256:c033fd0edb91000a7f09527fe5c75321878f98322a77ddcc81adbd83724afb7b"},
+    {file = "isort-5.11.4.tar.gz", hash = "sha256:6db30c5ded9815d813932c04c2f85a360bcdd35fed496f4d8f35495ef0a261b6"},
+]
 py-essentials = [
     {file = "py_essentials-1.4.12.tar.gz", hash = "sha256:cd1f18a042dbc1866669e446422e62473b3818824d6053d4cd2e49b1630c4b19"},
 ]

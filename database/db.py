@@ -1,8 +1,13 @@
-import os.path
 import sqlite3
+
+from logs.logger import logger
 
 
 def singleton(class_):
+    """
+    Singleton decorator for more effective using
+    connection to db
+    """
     instances = {}
 
     def getinstance(*args, **kwargs):
@@ -14,22 +19,28 @@ def singleton(class_):
 
 
 class BaseDbHelper:
+    """
+    Base class for store connect, path and cursor
+    """
+
     def __init__(self, path_to_db):
         self.path_to_db = path_to_db
         self._connect = sqlite3.connect(self.path_to_db)
         self.cursor = self._connect.cursor()
 
-    def _execute_query(self, query):
+    def _execute_query(self, query: str) -> sqlite3.Cursor:
+        """"
+        Method for execute query
+        """
         result = self.cursor.execute(query)
         self._connect.commit()
         return result
 
 
 class DbHelper(BaseDbHelper):
-
-    def get_all_tables(self):
-        result = self._execute_query(f"SELECT name FROM sqlite_master WHERE type='table'")
-        return result.fetchall()
+    """
+    Object for run low-level queries
+    """
 
     def create_table(self, table_name: str,
                      fields: str):
@@ -37,79 +48,104 @@ class DbHelper(BaseDbHelper):
                                      f"({fields})")
         return result
 
-    def delete_table(self, table_name: str):
-        self._execute_query(f"DROP TABLE IF EXISTS {table_name}")
-
     def get_rows_from_table(self, table: str,
-                            filters='', field='*'):
+                            filters='', field='*') -> list:
         table = table
         filters = filters
-        query = f'select {field} from {table}'
+        query = f'SELECT {field} FROM {table}'
         if len(filters) > 0:
             query += f' where {filters}'
         result = self._execute_query(query).fetchall()
-        return result if len(result) > 0 else [{}]
-
-    def update_row(self, table: str,
-                   key: str, value: str,
-                   filters: str):
-        query = f'update {table} set {key} = "{value}" where {filters}'
-        self._execute_query(query)
+        return result if len(result) > 0 else []
 
     def insert_row(self, table: str,
-                   columns: str, values: str):
+                   columns: str, values: str) -> list:
         query = f"""INSERT INTO {table} ({columns}) values ({values})"""
         self._execute_query(query)
 
     def delete_row(self, table: str,
                    filters: str):
-        query = f'delete from {table} where {filters}'
+        query = f'DELETE FROM {table} WHERE {filters}'
         self._execute_query(query)
+
+    def select_join(self, fields: str,
+                    left_table: str,
+                    right_table: str,
+                    on_fields: str,
+                    filters: str):
+        query = (f"SELECT {fields} "
+                 f"FROM {left_table} "
+                 f"JOIN {right_table} "
+                 f"ON {on_fields} "
+                 f"WHERE {filters}")
+        result = self._execute_query(query).fetchall()
+        return [i for i in result] if len(result) > 0 else []
 
 
 @singleton
 class DbMethods(DbHelper):
+    """
+    Object for run high-level queries
+    """
 
-    def create_table_directories(self):
+    def create_table_directories_if_not_exists(self):
         self.create_table(table_name="directories",
                           fields="id INTEGER PRIMARY KEY, parent_id INTEGER, name TEXT")
 
-    def create_table_files(self):
+    def create_table_files_if_not_exists(self):
         self.create_table(table_name="files",
                           fields="id INTEGER PRIMARY KEY, directory_id INTEGER, "
-                          "name TEXT, modified_date TEXT, permission INTEGER, "
-                          "hash TEXT")
+                                 "name TEXT, modified_date TEXT, permission INTEGER, "
+                                 "hash TEXT")
 
-    def add_row_to_dir(self, parent_id, name):
-        self.create_table_directories()
+    def add_row_to_dir(self, parent_id: int, name: str) -> None:
+        self.create_table_directories_if_not_exists()
         self.insert_row(table="directories",
                         columns="parent_id, name",
                         values=f"{parent_id}, '{name}'")
 
-    def add_row_to_file(self, directory_id, name, modified_date, permission, file_hash):
-        self.create_table_files()
+    def add_row_to_file(self, directory_id: int,
+                        name: str, modified_date: str, permission: int, file_hash: str) -> None:
+        self.create_table_files_if_not_exists()
         self.insert_row(table="files",
                         columns="directory_id, name, modified_date, permission, hash",
                         values=f"{directory_id}, '{name}', '{modified_date}', {permission}, '{file_hash}'")
 
-    def get_row(self, table, id_):
-        row = self.get_rows_from_table(table=table,
-                                       filters=f"id={id_}")
-        return row
+    def file_is_present(self, name: str) -> bool:
+        row = self.get_rows_from_table(table="files",
+                                       filters=f"name = '{name}'")
+        return bool(row)
 
+    def dir_is_present(self, name: str) -> bool:
+        row = self.get_rows_from_table(table="directories",
+                                       filters=f"name = '{name}'")
+        return bool(row)
 
-# db = DbMethods(os.path.abspath('db.sqlite3'))
+    def delete_args_related_rows(self, path: str) -> list:
+        ids = self.select_join(fields="directories.id, files.id",
+                               left_table="directories",
+                               right_table="files",
+                               on_fields="directories.id = files.directory_id",
+                               filters=f"directories.name LIKE '{path}%';")
+        logger.info(f"Deleted these ids: {ids}")
+        files_id = ", ".join([str(i[1]) for i in ids])
+        dir_id = ", ".join([str(i[0]) for i in ids])
+        self.delete_row(table="files",
+                        filters=f"id IN ({files_id})")
+        self.delete_row(table="directories",
+                        filters=f"id IN ({dir_id})")
 
-# print(db is db1)
-# print(db.get_all_tables())
-# print(db.get_rows_from_table('directories'))
+        return ids
 
-# db.delete_table("files")
-# db.delete_table("directories")
-# db.create_table_files()
-# db.create_table_directories()
-# # print(db.add_row_to_dir(3, "buy"))
-# # db.add_row_to_file(2, "foo", "21.01.2022 15:65", 777, "HFDSAF635634DFSA")
-# # print(db.get_rows_from_table('files'))
-# print(db.get_rows_from_table('directories'))
+    def delete_table(self, table_name: str) -> None:
+        self._execute_query(f"DROP TABLE {table_name}; ")
 
+    def delete_tables_if_files_or_dir_not_exists(self) -> None:
+        tables = ["files", "directories"]
+        for table in tables:
+            response = self._execute_query(
+                f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
+            if not response:
+                self.delete_table(tables[0])
+                self.delete_table(table[1])
+                break

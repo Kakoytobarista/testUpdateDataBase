@@ -1,8 +1,12 @@
 import time
+
 from logs.logger import logger
 
 
 def exception(func):
+    """
+    Decorator for logging
+    """
     def wrapper(*args, **kwargs):
         time_start = time.time()
         try:

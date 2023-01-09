@@ -2,52 +2,63 @@ import argparse
 import os
 import sys
 
-from utils.exceptions import DataBaseAccessDeniedException, RootDirAccessDeniedException
-from logs.logger import logger
 from logs.exception import exception
+from logs.logger import add_stream_handler, add_write_log_handler, logger
+from utils.exceptions import (DataBaseAccessDeniedException,
+                              RootDirAccessDeniedException)
 
 parser = argparse.ArgumentParser(add_help=False)
 
+parser.add_argument("-h", "--short-help", action="help", help="show short help")
+parser.add_argument("--help", action="help", help="show extended help")
 parser.add_argument("-d", "--directory", help="Root directory", required=True)
 parser.add_argument("-b", "--database", help="Path to database", required=True)
+parser.add_argument("-l", "--log", help="Logging events", required=True)
 parser.add_argument("-v", "--verbose", help="Increase output verbosity", action="store_true")
-parser.add_argument("-l", "--log", help="Logging events", action="store_true")
-parser.add_argument("-h", "--short-help", action="store_true", help="show short help")
-parser.add_argument("--help", action="store_true", help="show extended help")
 args = parser.parse_args()
 
 
 @exception
-def parse_arguments():
+def parse_arguments() -> None:
+    """Function parser for handle args of script"""
     logger.info(f"Parsed args: {args}")
+    add_write_log_handler(logger)
+
     if args.verbose:
+        add_stream_handler(logger)
         logger.debug("Verbose argument is given")
 
-    if args.log:
+    if not args.log:
         logger.debug("Log argument is given")
 
     if not args.directory:
+        add_stream_handler(logger)
         logger.error("You are dont write a root directory")
 
     if not args.database:
+        add_stream_handler(logger)
         logger.error("You are dont write a database directory")
 
     if not os.path.exists(args.directory):
+        add_stream_handler(logger)
         logger.error("Root directory doesn't exist")
         sys.exit(1)
 
     if not os.path.exists(args.database):
+        add_stream_handler(logger)
         logger.error("Database path doesn't exist")
         sys.exit(1)
 
     try:
         os.access(args.directory, os.W_OK)
     except RootDirAccessDeniedException as e:
+        add_stream_handler(logger)
         logger.error(f"Root directory is not accessible, {e}")
         sys.exit(1)
 
     try:
         os.access(args.database, os.W_OK)
     except DataBaseAccessDeniedException as e:
+        add_stream_handler(logger)
         logger.error(f"Database path is not accessible, {e}")
         sys.exit(1)
