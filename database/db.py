@@ -37,11 +37,15 @@ class BaseDbHelper:
 
     def _execute_query(self, query: str) -> sqlite3.Cursor:
         """"
-        Method for execute query
+        Method for execute query and commit transaction
         """
-        result = self.cursor.execute(query)
-        self._connect.commit()
-        return result
+        try:
+            result = self.cursor.execute(query)
+            self._connect.commit()
+        except sqlite3.Error as e:
+            logger.error(f"Error: {e}")
+        else:
+            return result
 
 
 class DbHelper(BaseDbHelper):
