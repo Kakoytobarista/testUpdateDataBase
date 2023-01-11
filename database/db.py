@@ -25,8 +25,15 @@ class BaseDbHelper:
 
     def __init__(self, path_to_db):
         self.path_to_db = path_to_db
-        self._connect = sqlite3.connect(self.path_to_db)
+        self._connect = self._get_connect()
         self.cursor = self._connect.cursor()
+
+    def _get_connect(self):
+        try:
+            connect = sqlite3.connect(self.path_to_db)
+            return connect
+        except sqlite3.Error as e:
+            logger.error("Error:", e)
 
     def _execute_query(self, query: str) -> sqlite3.Cursor:
         """"
@@ -126,7 +133,7 @@ class DbMethods(DbHelper):
                                left_table="directories",
                                right_table="files",
                                on_fields="directories.id = files.directory_id",
-                               filters=f"directories.name LIKE '{path}%/';")
+                               filters=f"directories.name LIKE '{path}/%';")
         logger.info(f"Deleted these ids: {ids}")
         files_id = ", ".join([str(i[1]) for i in ids])
         dir_id = ", ".join([str(i[0]) for i in ids])

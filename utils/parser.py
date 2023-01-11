@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+from pathlib import Path
 
 from logs.exception import exception
 from logs.logger import add_stream_handler, add_write_log_handler, logger
@@ -33,12 +34,12 @@ def parse_arguments() -> None:
         logger.error("Root directory doesn't exist")
         sys.exit(1)
 
-    if not os.path.exists(args.log):
+    if not os.path.isfile(args.log) or (Path(args.log).suffix != ".log"):
         add_stream_handler(logger)
         logger.error("Log file doesn't exist")
         sys.exit(1)
 
-    if not os.path.exists(args.database):
+    if not os.path.isfile(args.database) or Path(args.database).suffix != ".sqlite3":
         add_stream_handler(logger)
         logger.error("Database path doesn't exist")
         sys.exit(1)
