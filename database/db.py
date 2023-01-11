@@ -45,6 +45,7 @@ class BaseDbHelper:
         except sqlite3.Error as e:
             logger.error(f"Error: {e}")
         else:
+            logger.info(f"Result: {result}")
             return result
 
 
