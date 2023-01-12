@@ -29,24 +29,38 @@ class BaseDbHelper:
         self._connect = self._get_connect()
         self.cursor = self._connect.cursor()
 
-    def _get_connect(self):
+    def _get_connect(self) -> sqlite3.Connection:
+        """
+        Method for getting connect of db sqlite
+        :return: sqlite3.Connection
+        """
         try:
             connect = sqlite3.connect(self.path_to_db)
-            return connect
         except sqlite3.Error as e:
             logger.error("Error:", e)
+        else:
+            return connect
 
-    def _execute_query(self, query: str) -> sqlite3.Cursor:
+    def _execute_query(self, query: str) -> Cursor:
         """"
         Method for execute query and commit transaction
         """
         try:
             result = self.cursor.execute(query)
-            self._connect.commit()
         except sqlite3.Error as e:
-            logger.error(f"Error: {e}")
+            logger.error(f"Error of execute, message: {e}")
         else:
             return result
+
+    def _commit(self) -> None:
+        """
+        Method for commit transaction of executed
+        :return: None
+        """
+        try:
+            self._connect.commit()
+        except sqlite3.Error as e:
+            logger.error(f"Error of commit, message: {e}")
 
 
 class DbHelper(BaseDbHelper):
@@ -55,7 +69,7 @@ class DbHelper(BaseDbHelper):
     """
 
     def create_table(self, table_name: str,
-                     fields: str):
+                     fields: str) -> Cursor:
         result = self._execute_query(f"CREATE TABLE IF NOT EXISTS {table_name} "
                                      f"({fields})")
         return result
@@ -84,7 +98,7 @@ class DbHelper(BaseDbHelper):
                     left_table: str,
                     right_table: str,
                     on_fields: str,
-                    filters: str):
+                    filters: str) -> list:
         query = (f"SELECT {fields} "
                  f"FROM {left_table} "
                  f"JOIN {right_table} "
@@ -134,34 +148,16 @@ class DbMethods(DbHelper):
                                        filters=f"name = '{name}'")
         return bool(row)
 
-    def delete_args_related_rows(self, path: str) -> list:
-        ids = self.select_join(fields="DISTINCT directories.id, files.id",
-                               left_table="directories",
-                               right_table="files",
-                               on_fields="directories.id = files.directory_id",
-                               filters=f"directories.name LIKE '{path}%';")
-        logger.info(f"Deleted these ids: {ids}")
-        files_id = ", ".join([str(i[1]) for i in ids])
-        dir_id = ", ".join([str(i[0]) for i in ids])
-        self.delete_row(table="files",
-                        filters=f"id IN ({files_id})")
-        self.delete_row(table="directories",
-                        filters=f"id IN ({dir_id})")
-
-        return ids
-
     def delete_table(self, table_name: str) -> None:
         self._execute_query(f"DROP TABLE IF EXISTS {table_name}; ")
 
     def delete_tables_if_files_or_dir_not_exists(self) -> None:
-        tables = ["files", "directories"]
-        for table in tables:
-            response = self._execute_query(
-                f"SELECT EXISTS(SELECT name FROM sqlite_master WHERE type='table' AND name='{table}');").fetchone()
-            if 0 in response:
-                self.delete_table(tables[0])
-                self.delete_table(tables[1])
-                break
+        self._execute_query("SELECT name FROM sqlite_master WHERE type='table' "
+                            "AND name='files' OR name='directories';")
+        if self.cursor.fetchone() is not None:
+            self._execute_query("DROP TABLE files;")
+            self._execute_query("; DROP TABLE directories;")
+            logger.info("Tables 'files' and 'directories' have been dropped.")
 
     def get_dir_id_by_name(self, name: str) -> int:
         row = self.get_rows_from_table(table="directories",

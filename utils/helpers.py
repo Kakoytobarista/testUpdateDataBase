@@ -32,6 +32,7 @@ def handle_directories(db: DbMethods, dir_path: str, parent_id: str):
             parent_id = db.get_dir_id_by_name(parent_dir_path)
 
         directory_id = db.add_row_to_dir(parent_id=parent_id, name=dir_path).lastrowid
+        db._commit()
         logger.info(f"Write to directory table::  Dirname : {dir_path.split('/')[-1]}"
                     f" :: Path: {dir_path}")
         return directory_id
@@ -58,6 +59,7 @@ def handle_files(db, dir_path, filename, directory_id):
         db.add_row_to_file(directory_id=directory_id, name=filename,
                            modified_date=last_modified, permission=permissions,
                            file_hash=file_hash)
+        db._commit()
         logger.info(f"Write to File table:: Filename: {filename} :: Path: {path}"
                     f" :: modified: {last_modified} :: "
                     f"Permissions: {permissions} :: Hash: {file_hash}")

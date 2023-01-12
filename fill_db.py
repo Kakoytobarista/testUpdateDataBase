@@ -1,15 +1,26 @@
 import os
 
-from utils.helpers import handle_last_slash, handle_directories, handle_files
-from utils.parser import args, parse_arguments
-
-
 from database.db import DbMethods
 from logs.exception import exception
 from logs.logger import logger
+from utils.helpers import handle_directories, handle_files, handle_last_slash
+from utils.parser import args, parse_arguments
 
 
 def populate_database(start_path: str, db: DbMethods) -> None:
+    """
+    This function iterates through all directories and files and writes
+    data to the sqlite database in table directories with fields:
+    id, parent_id, name
+    and in table files with fields:
+    id, directory_id, name, modified_date, permission, hash.
+
+    :param start_path: str
+        Path of directory
+    :param db: DbMethods
+        Class with methods for manipulate with db.
+    :return: None
+    """
     parent_id = "null"
 
     for dir_path, subdir_list, file_list in os.walk(start_path):
@@ -17,8 +28,8 @@ def populate_database(start_path: str, db: DbMethods) -> None:
                                           parent_id=parent_id)
 
         for filename in file_list:
-            handle_files(db=db, dir_path=dir_path, filename=filename,
-                         directory_id=directory_id)
+            handle_files(db=db, dir_path=dir_path,
+                         filename=filename, directory_id=directory_id)
 
 
 @exception
