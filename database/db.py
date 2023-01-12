@@ -1,4 +1,5 @@
 import sqlite3
+from sqlite3 import Cursor
 
 from logs.logger import logger
 
@@ -45,7 +46,6 @@ class BaseDbHelper:
         except sqlite3.Error as e:
             logger.error(f"Error: {e}")
         else:
-            logger.info(f"Result: {result}")
             return result
 
 
@@ -61,23 +61,23 @@ class DbHelper(BaseDbHelper):
         return result
 
     def get_rows_from_table(self, table: str,
-                            filters='', field='*') -> list:
+                            filters="", field="*") -> list:
         table = table
         filters = filters
-        query = f'SELECT {field} FROM {table}'
+        query = f"SELECT {field} FROM {table}"
         if len(filters) > 0:
-            query += f' where {filters}'
+            query += f" where {filters}"
         result = self._execute_query(query).fetchall()
         return result if len(result) > 0 else []
 
     def insert_row(self, table: str,
-                   columns: str, values: str) -> list:
-        query = f"""INSERT INTO {table} ({columns}) values ({values})"""
-        self._execute_query(query)
+                   columns: str, values: str) -> Cursor:
+        query = f"INSERT INTO {table} ({columns}) values ({values})"
+        return self._execute_query(query)
 
     def delete_row(self, table: str,
                    filters: str):
-        query = f'DELETE FROM {table} WHERE {filters}'
+        query = f"DELETE FROM {table} WHERE {filters}"
         self._execute_query(query)
 
     def select_join(self, fields: str,
@@ -110,22 +110,23 @@ class DbMethods(DbHelper):
                                  "name TEXT, modified_date TEXT, permission INTEGER, "
                                  "hash TEXT")
 
-    def add_row_to_dir(self, parent_id: int, name: str) -> None:
-        self.create_table_directories_if_not_exists()
-        self.insert_row(table="directories",
-                        columns="parent_id, name",
-                        values=f"{parent_id}, '{name}'")
+    def add_row_to_dir(self, parent_id: str, name: str) -> Cursor:
+        row = self.insert_row(table="directories",
+                              columns="parent_id, name",
+                              values=f"{parent_id}, '{name}'")
+        return row
 
     def add_row_to_file(self, directory_id: int,
                         name: str, modified_date: str, permission: int, file_hash: str) -> None:
-        self.create_table_files_if_not_exists()
         self.insert_row(table="files",
                         columns="directory_id, name, modified_date, permission, hash",
                         values=f"{directory_id}, '{name}', '{modified_date}', {permission}, '{file_hash}'")
 
-    def file_is_present(self, name: str) -> bool:
+    def file_is_present(self, name: str,
+                        file_hash: str) -> bool:
         row = self.get_rows_from_table(table="files",
-                                       filters=f"name = '{name}'")
+                                       filters=f"name = '{name}' "
+                                               f"AND hash = '{file_hash}'")
         return bool(row)
 
     def dir_is_present(self, name: str) -> bool:
@@ -134,11 +135,11 @@ class DbMethods(DbHelper):
         return bool(row)
 
     def delete_args_related_rows(self, path: str) -> list:
-        ids = self.select_join(fields="directories.id, files.id",
+        ids = self.select_join(fields="DISTINCT directories.id, files.id",
                                left_table="directories",
                                right_table="files",
                                on_fields="directories.id = files.directory_id",
-                               filters=f"directories.name LIKE '{path}/%';")
+                               filters=f"directories.name LIKE '{path}%';")
         logger.info(f"Deleted these ids: {ids}")
         files_id = ", ".join([str(i[1]) for i in ids])
         dir_id = ", ".join([str(i[0]) for i in ids])
@@ -161,3 +162,10 @@ class DbMethods(DbHelper):
                 self.delete_table(tables[0])
                 self.delete_table(tables[1])
                 break
+
+    def get_dir_id_by_name(self, name: str) -> int:
+        row = self.get_rows_from_table(table="directories",
+                                       filters=f"name = '{name}'",
+                                       field="id")[0][0]
+        return row
+
