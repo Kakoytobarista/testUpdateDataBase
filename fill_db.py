@@ -29,7 +29,6 @@ def main():
     db.delete_tables_if_files_or_dir_not_exists()
     db.create_table_directories_if_not_exists()
     db.create_table_files_if_not_exists()
-    db.delete_args_related_rows(path)
     populate_database(path, db)
 
 
